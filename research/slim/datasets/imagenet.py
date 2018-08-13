@@ -56,7 +56,7 @@ _ITEMS_TO_DESCRIPTIONS = {
     'object/label': 'A list of labels, one per each object.',
 }
 
-_NUM_CLASSES = 1001
+_NUM_CLASSES = 2
 
 # If set to false, will not try to set label_to_names in dataset
 # by reading them from labels.txt or github.

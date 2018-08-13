@@ -303,7 +303,7 @@ def _scope_all(scope, default_scope=None):
 
 @slim.add_arg_scope
 def mobilenet(inputs,
-              num_classes=1001,
+              num_classes=2,
               prediction_fn=slim.softmax,
               reuse=None,
               scope='Mobilenet',
