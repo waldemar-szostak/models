@@ -79,6 +79,12 @@ tf.app.flags.DEFINE_float(
 tf.app.flags.DEFINE_integer(
     'eval_image_size', None, 'Eval image size')
 
+tf.app.flags.DEFINE_float(
+    'gpu_percentage', 1.0, 'Number of percentage that tensorflow will allocate')
+
+tf.app.flags.DEFINE_boolean(
+    'cpu_only', False, 'Set to True for CPU mode')
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -124,7 +130,6 @@ def main(_):
         is_training=False)
 
     eval_image_size = FLAGS.eval_image_size or network_fn.default_image_size
-
     image = image_preprocessing_fn(image, eval_image_size, eval_image_size)
 
     images, labels = tf.train.batch(
@@ -153,8 +158,8 @@ def main(_):
     # Define the metrics:
     names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
         'Accuracy': slim.metrics.streaming_accuracy(predictions, labels),
-        'Recall_5': slim.metrics.streaming_recall_at_k(
-            logits, labels, 5),
+        'Recall': slim.metrics.streaming_sparse_recall_at_k(
+            logits, labels, 2),
     })
 
     # Print the summaries to screen.
@@ -178,13 +183,20 @@ def main(_):
 
     tf.logging.info('Evaluating %s' % checkpoint_path)
 
+    if FLAGS.cpu_only:
+        config = tf.ConfigProto(device_count={'GPU':0})
+    else:
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=FLAGS.gpu_percentage)
+        config = tf.ConfigProto(gpu_options=gpu_options)
+
     slim.evaluation.evaluate_once(
         master=FLAGS.master,
         checkpoint_path=checkpoint_path,
         logdir=FLAGS.eval_dir,
         num_evals=num_batches,
         eval_op=list(names_to_updates.values()),
-        variables_to_restore=variables_to_restore)
+        variables_to_restore=variables_to_restore,
+        session_config=config)
 
 
 if __name__ == '__main__':
