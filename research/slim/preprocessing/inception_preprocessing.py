@@ -127,7 +127,7 @@ def distorted_bounding_box_crop(image,
   Returns:
     A tuple, a 3-D Tensor cropped_image and the distorted bbox
   """
-  with tf.name_scope(scope, 'distorted_bounding_box_crop', [image, bbox]):
+#  with tf.name_scope(scope, 'distorted_bounding_box_crop', [image, bbox]):
     # Each bounding box has shape [1, num_boxes, box coords] and
     # the coordinates are ordered [ymin, xmin, ymax, xmax].
 
@@ -138,19 +138,19 @@ def distorted_bounding_box_crop(image,
     # allowed range of aspect ratios, sizes and overlap with the human-annotated
     # bounding box. If no box is supplied, then we assume the bounding box is
     # the entire image.
-    sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
-        tf.shape(image),
-        bounding_boxes=bbox,
-        min_object_covered=min_object_covered,
-        aspect_ratio_range=aspect_ratio_range,
-        area_range=area_range,
-        max_attempts=max_attempts,
-        use_image_if_no_bounding_boxes=True)
-    bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
+#    sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
+#        tf.shape(image),
+#        bounding_boxes=bbox,
+#        min_object_covered=min_object_covered,
+#        aspect_ratio_range=aspect_ratio_range,
+#        area_range=area_range,
+#        max_attempts=max_attempts,
+#        use_image_if_no_bounding_boxes=True)
+#    bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
 
     # Crop the image to the specified bounding box.
-    cropped_image = tf.slice(image, bbox_begin, bbox_size)
-    return cropped_image, distort_bbox
+#    cropped_image = tf.slice(image, bbox_begin, bbox_size)
+#    return cropped_image, distort_bbox
 
 
 def preprocess_for_train(image, height, width, bbox,
@@ -184,28 +184,28 @@ def preprocess_for_train(image, height, width, bbox,
     3-D float Tensor of distorted image used for training with range [-1, 1].
   """
   with tf.name_scope(scope, 'distort_image', [image, height, width, bbox]):
-    if bbox is None:
-      bbox = tf.constant([0.0, 0.0, 1.0, 1.0],
-                         dtype=tf.float32,
-                         shape=[1, 1, 4])
+ #   if bbox is None:
+ #     bbox = tf.constant([0.0, 0.0, 1.0, 1.0],
+ #                        dtype=tf.float32,
+ #                        shape=[1, 1, 4])
     if image.dtype != tf.float32:
       image = tf.image.convert_image_dtype(image, dtype=tf.float32)
     # Each bounding box has shape [1, num_boxes, box coords] and
     # the coordinates are ordered [ymin, xmin, ymax, xmax].
-    image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
-                                                  bbox)
-    if add_image_summaries:
-      tf.summary.image('image_with_bounding_boxes', image_with_box)
+ #   image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
+ #                                                 bbox)
+ #   if add_image_summaries:
+ #     tf.summary.image('image_with_bounding_boxes', image_with_box)
 
-    distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
+#    distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
     # Restore the shape since the dynamic slice based upon the bbox_size loses
     # the third dimension.
-    distorted_image.set_shape([None, None, 3])
-    image_with_distorted_box = tf.image.draw_bounding_boxes(
-        tf.expand_dims(image, 0), distorted_bbox)
-    if add_image_summaries:
-      tf.summary.image('images_with_distorted_bounding_box',
-                       image_with_distorted_box)
+#    distorted_image.set_shape([None, None, 3])
+#   image_with_distorted_box = tf.image.draw_bounding_boxes(
+#        tf.expand_dims(image, 0), distorted_bbox)
+#    if add_image_summaries:
+#      tf.summary.image('images_with_distorted_bounding_box',
+#                       image_with_distorted_box)
 
     # This resizing operation may distort the images because the aspect
     # ratio is not respected. We select a resize method in a round robin
@@ -215,7 +215,8 @@ def preprocess_for_train(image, height, width, bbox,
     # We select only 1 case for fast_mode bilinear.
     num_resize_cases = 1 if fast_mode else 4
     distorted_image = apply_with_random_selector(
-        distorted_image,
+#        distorted_image,
+        image,
         lambda x, method: tf.image.resize_images(x, [height, width], method),
         num_cases=num_resize_cases)
 
@@ -238,6 +239,8 @@ def preprocess_for_train(image, height, width, bbox,
                        tf.expand_dims(distorted_image, 0))
     distorted_image = tf.subtract(distorted_image, 0.5)
     distorted_image = tf.multiply(distorted_image, 2.0)
+    
+    
     return distorted_image
 
 
@@ -312,7 +315,10 @@ def preprocess_image(image, height, width,
     ValueError: if user does not provide bounding box
   """
   if is_training:
-    return preprocess_for_train(image, height, width, bbox, fast_mode,
+    image = preprocess_for_train(image, height, width, bbox, fast_mode,
                                 add_image_summaries=add_image_summaries)
   else:
-    return preprocess_for_eval(image, height, width)
+    image = preprocess_for_eval(image, height, width)
+
+  return image
+#  return tf.image.per_image_standardization(image)
