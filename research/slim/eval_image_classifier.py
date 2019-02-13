@@ -85,6 +85,9 @@ tf.app.flags.DEFINE_float(
 tf.app.flags.DEFINE_boolean(
     'cpu_only', False, 'Set to True for CPU mode')
 
+tf.app.flags.DEFINE_bool(
+    'quantize', False, 'whether to use quantized graph or not.')
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -130,6 +133,7 @@ def main(_):
         is_training=False)
 
     eval_image_size = FLAGS.eval_image_size or network_fn.default_image_size
+
     image = image_preprocessing_fn(image, eval_image_size, eval_image_size)
 
     images, labels = tf.train.batch(
@@ -142,6 +146,9 @@ def main(_):
     # Define the model #
     ####################
     logits, _ = network_fn(images)
+
+    if FLAGS.quantize:
+      tf.contrib.quantize.create_eval_graph()
 
     if FLAGS.moving_average_decay:
       variable_averages = tf.train.ExponentialMovingAverage(
